@@ -23,7 +23,13 @@ void mum_loop() //in constant loop
         printf("mumsh $ ");
         char* user_input = mum_read();
         char** token = mum_parse(user_input);    
-        mum_execute(token);
+        if (token != NULL)
+        {
+            if (strcmp(token[0],"exit")==0)
+                break;
+            mum_execute(token);
+
+        }
         free(user_input);
         free(token);
     } while (1);
