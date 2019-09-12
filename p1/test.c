@@ -35,7 +35,7 @@ void mum_loop() //in constant loop
 
         free(user_input);
         free(command);
-
+        printf("\n");
     } while (1);
 }
 
