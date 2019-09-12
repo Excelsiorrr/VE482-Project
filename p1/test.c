@@ -22,6 +22,7 @@ void mum_loop() //in constant loop
     {
         printf("mumsh $ ");
         char* user_input = mum_read();
+        printf("%s\n",user_input);
         char** command = mum_parse(user_input);
 
         printf("%s\n",user_input);
