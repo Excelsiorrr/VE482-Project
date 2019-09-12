@@ -27,7 +27,7 @@ void mum_loop() //in constant loop
         int pos = 0;
         while(command[pos]!=NULL)
         {
-            printf(command[pos]);
+            printf("%s ",command[pos]);
             pos++;
         }
     } while (1);
