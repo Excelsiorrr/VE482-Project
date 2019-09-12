@@ -30,6 +30,9 @@ void mum_loop() //in constant loop
             printf("%s ",command[pos]);
             pos++;
         }
+        free(user_input);
+        free(command);
+        
     } while (1);
 }
 
