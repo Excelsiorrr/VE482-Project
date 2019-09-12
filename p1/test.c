@@ -13,30 +13,28 @@ char** mum_parse(char* user_input);
 
 int main(int argc, char const ** argv)
 {
-     mum_loop();
-}
-
-void mum_loop() //in constant loop
-{
     do
     {
         printf("mumsh $ ");
         char* user_input = mum_read();
-        printf("%s\n",user_input);
-        char** command = mum_parse(user_input);
+        char** token = mum_parse(user_input);
 
-        printf("%s\n",user_input);
         int pos = 0;
-        while(command[pos]!=NULL)
+        while(pos < argc)
         {
-            printf("%s ",command[pos]);
+            printf("%s ",argv[pos]);
             pos++;
         }
-
+    
         free(user_input);
-        free(command);
+        free(token);
         printf("\n");
     } while (1);
+}
+
+void mum_loop() //in constant loop
+{
+
 }
 
 char* mum_read() //reads from standard input
@@ -47,7 +45,7 @@ char* mum_read() //reads from standard input
     return user_input;
 }
 
-char** mum_parse(char* user_input)
+char** mum_parse(char* user_input) //parse from stdin
 {
     if (user_input == NULL) return NULL;
     int token_size = 100;
@@ -69,4 +67,9 @@ char** mum_parse(char* user_input)
     } while (parsing != NULL);
     token[index] = NULL;
     return token;
+}
+
+int mum_execute(char** token)
+{
+
 }
