@@ -8,7 +8,7 @@
 void mum_loop();
 char* mum_read();
 char** mum_parse(char* user_input);
-
+int mum_execute(char** token);
 
 
 int main(int argc, char const ** argv)
@@ -23,6 +23,7 @@ void mum_loop() //in constant loop
         printf("mumsh $ ");
         char* user_input = mum_read();
         char** token = mum_parse(user_input);    
+        mum_execute(token);
         free(user_input);
         free(token);
         printf("\n");
@@ -35,6 +36,7 @@ int mum_execute(char** token)
     {
         printf("LIST EVERYTHING");
     }
+    return 0;
 }
 
 char* mum_read() //reads from standard input
