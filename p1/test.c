@@ -51,7 +51,7 @@ char** mum_parse(char* user_input)
     if (user_input == NULL) return NULL;
     int token_size = 100;
     int step_size = 10;
-    char* delim = " ";
+    char* delim = " \n";
     char** token = malloc(sizeof(char*)*token_size);
     int index = 0;
     char* parsing = strtok(user_input,delim);
