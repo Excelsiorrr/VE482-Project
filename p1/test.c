@@ -26,7 +26,6 @@ void mum_loop() //in constant loop
         mum_execute(token);
         free(user_input);
         free(token);
-        printf("\n");
     } while (1);
 }
 
