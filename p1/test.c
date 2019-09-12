@@ -24,15 +24,17 @@ void mum_loop() //in constant loop
         char* user_input = mum_read();
         char** command = mum_parse(user_input);
 
+        print("%s\n",user_input);
         int pos = 0;
         while(command[pos]!=NULL)
         {
             printf("%s ",command[pos]);
             pos++;
         }
+
         free(user_input);
         free(command);
-        
+
     } while (1);
 }
 
