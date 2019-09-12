@@ -44,7 +44,11 @@ int mum_execute(char** token)
     }
     else if (pid == 0) //child process
     {
-        execvp(command,token);
+        if (execvp(command,token)<0)
+        {
+            printf("Error: execvp failed!\n");
+            exit(1);
+        }
         return 1;
     }
     else //parent process
@@ -52,7 +56,7 @@ int mum_execute(char** token)
         do
         {
             wpid = waitpid(pid,&status,0);
-        } while (!WIFEXITED(status));
+        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
     }
     return 1;
 }
