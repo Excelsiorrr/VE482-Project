@@ -32,11 +32,29 @@ void mum_loop() //in constant loop
 
 int mum_execute(char** token)
 {
-    if (strcmp(token[0],"ls"))
+    if (token==NULL) return 1;
+    char* command = token[0];
+    pid_t pid,wpid;
+    pid = fork();
+    int status;
+    if (pid == -1)
     {
-        printf("LIST EVERYTHING");
+        perror("Fork Error");
+        exit(1);
     }
-    return 0;
+    else if (pid == 0) //child process
+    {
+        execvp(command,token);
+        return 1;
+    }
+    else //parent process
+    {
+        do
+        {
+            wpid = waitpid(pid,&status,0);
+        } while (!WIFEXITED(status));
+    }
+    return 1;
 }
 
 char* mum_read() //reads from standard input
