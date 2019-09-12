@@ -11,7 +11,7 @@ char** mum_parse(char* user_input);
 int mum_execute(char** token);
 
 
-int main(int argc, char const ** argv)
+int main()
 {
      mum_loop();
 }
@@ -68,7 +68,7 @@ int mum_execute(char** token)
 
 char* mum_read() //reads from standard input
 {
-    ssize_t read;
+    size_t read;
     char* user_input = NULL;
     getline(&user_input,&read,stdin);
     return user_input;
