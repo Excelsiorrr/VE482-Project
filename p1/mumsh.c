@@ -152,9 +152,9 @@ int redirection(char** token, int* redirect_para)
                 index++;
             }
         }
-        token_command[index] = NULL;
-        char* in_file = token[in_pos+1];
-        char* out_file = token[out_pos+1];
+        token_command[index+1] = NULL;
+        char* in_file = token_command[in_pos+1];
+        char* out_file = token_command[out_pos+1];
         int fd_out = open(out_file,out_flags, S_IRUSR | S_IWUSR);
         if (fd_out < 0)
         {
