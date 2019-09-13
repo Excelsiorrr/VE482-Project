@@ -102,13 +102,22 @@ int redirection(char** token, int* redirect_para)
             exit(1);
         }
     }
-    else if (status == 1 || status == 2) //only [command] [> or >>] [filename]
+    else if (status == 1) //only [command] [> or >>] [filename]
     {
         int pos = (status==1 ? out_pos : in_pos);
         int flags = (status==1 ? out_flags : in_flags);
         char** token_command = token;
         token_command[pos] = NULL;
         char* file_name = token[pos+1];
+
+        int ppos = pos+2;
+        while (token_command[ppos] != NULL)
+        {
+            token_command[pos] = token_command[ppos];
+            pos++;
+            ppos++;
+        }
+        token_command[pos] = NULL;
         int fd = open(file_name,flags, S_IRUSR | S_IWUSR); //everyone can read/write/exeucute.
         if (fd < 0)
         {
@@ -126,6 +135,11 @@ int redirection(char** token, int* redirect_para)
             exit(1);
         }
     }
+    // else if (status == 3) //[command] [> or >>] [filename1] [filename2] [<] [filename3]
+    // {
+        
+    // }
+    
     return 1;
 }
 
