@@ -1,5 +1,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,15 +25,14 @@ void mum_loop() //in constant loop
         printf("mumsh $ ");
         char* user_input = mum_read();
         char** token = mum_parse(user_input); 
-        int* redirect_para;   
         if (token != NULL)
         {
             if (strcmp(token[0],"exit")==0)
                 break;
-            redirect_para = check_redirection(token);
+            int* redirect_para = check_redirection(token);
             printf("%d %d %d",redirect_para[0],redirect_para[1],redirect_para[2]);
             mum_execute(token);
-
+            free(redirect_para);
         }
         free(user_input);
         free(token);
@@ -40,12 +41,15 @@ void mum_loop() //in constant loop
 
 
 // return int* redirect_para = {int status, int out_pos, int in_pos}
-    // status:
-    // 0: no redirection
-    // 1: only >
-    // 2: only <
-    // 3: both ">" "<" exists, order: ">" appears first
-    // 4: both ">" "<" exists, order: "<" appears first
+    //             0                    |       1       |     2     |
+    //          status                  |   out_pos     |   in_pos  |
+    // 0:   no redirection              |    1025       |   1025    |  
+    // 1:   only >                      |   <1025       |   1025    |   
+    // 2:   only <                      |   1025        |  <1025    |
+    // 3:   both ">" "<" exists,        |   smaller     |   bigger  |
+    //      order: ">" appears first    |               |           |
+    // 4:   both ">" "<" exists         |   bigger      |   smaller |
+    //      order: "<" appears first    |               |           |
 int* check_redirection(char** token)
 {
     int* redirect_para = malloc(sizeof(int)*3);
@@ -78,12 +82,47 @@ int* check_redirection(char** token)
     return redirect_para;
 }
 
-
+int redirection(char** token, int* redirect_para)
+{
+    int status = redirect_para[0];
+    int out_pos = redirect_para[1];
+    //int in_pos = redirect_para[2];
+    if (status == 0) //no redirection
+    {
+        if (execvp(token[0],token)<0)
+        {
+            printf("Error: execvp failed!\n");
+            exit(1);
+        }
+    }
+    else if (status == 1) //only >
+    {
+        char** token_command = token;
+        token_command = realloc(token_command,sizeof(char*)*out_pos);
+        char* file_name = token[out_pos+1];
+        int fd = open(file_name,O_CREAT|O_WRONLY|O_TRUNC,S_IRWXU); //everyone can read/write/exeucute.
+        if (fd < 0)
+        {
+            perror("Cannot open\n");
+            free(token_command);
+            return -1;
+        }
+        dup2(fd,1);
+        close(fd);
+        if (execvp(token_command[0],token_command)<0)
+        {
+            printf("Error:execvp failed!\n");
+            free(token_command);
+            exit(1);
+        }
+        free(token_command);
+    }
+    return 1;
+}
 
 int mum_execute(char** token)
 {
     if (token==NULL) return 1;
-    char* command = token[0];
     pid_t pid,wpid;
     pid = fork();
     int status;
@@ -94,12 +133,8 @@ int mum_execute(char** token)
     }
     else if (pid == 0) //child process
     {
-        if (execvp(command,token)<0)
-        {
-            printf("Error: execvp failed!\n");
-            exit(1);
-        }
-        return 1;
+        int* redirect_para = check_redirection(token);
+        redirection(token,redirect_para);
     }
     else //parent process
     {
