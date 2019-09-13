@@ -135,7 +135,7 @@ int redirection(char** token, int* redirect_para)
             exit(1);
         }
     }
-    else if (status == 3) //[command] [> or >>] [filename1] [filename2] [<] [filename3]
+    else //[command] [> or >>] [filename1] [filename2] [<] [filename3]
     {
         char** token_command = malloc(sizeof(char*)*1024);
         int index = 0; // count for new command
