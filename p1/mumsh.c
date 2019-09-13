@@ -121,8 +121,8 @@ int redirection(char** token, int* redirect_para)
         int fd = open(file_name,flags, S_IRUSR | S_IWUSR); //everyone can read/write/exeucute.
         if (fd < 0)
         {
-            perror("Cannot open\n");
-            return -1;
+            printf("Cannot open %s!\n",file_name);
+            exit(1);
         }
         if (status == 1)
             dup2(fd,1); // redirect stdout to file
@@ -135,11 +135,53 @@ int redirection(char** token, int* redirect_para)
             exit(1);
         }
     }
-    // else if (status == 3) //[command] [> or >>] [filename1] [filename2] [<] [filename3]
-    // {
-        
-    // }
-    
+    else if (status == 3) //[command] [> or >>] [filename1] [filename2] [<] [filename3]
+    {
+        char** token_command = malloc(sizeof(char*)*1024);
+        int index = 0; // count for new command
+        int track = 0; // track index for original command
+        while (token[track] != NULL)
+        {
+            if (track == out_pos || track == (out_pos+1) || track == (in_pos) || track == (in_pos+1))
+            {
+                track++;
+            }
+            else
+            {
+                token_command[index] = token[track];
+                track++;
+                index++;
+            }
+        }
+        token_command = realloc(token_command,sizeof(char*)*index);
+        char* in_file = token[in_pos+1];
+        char* out_file = token[out_pos+1];
+        int fd_out = open(out_file,out_flags, S_IRUSR | S_IWUSR);
+        if (fd_out < 0)
+        {
+            printf("Cannot open %s!\n",out_file);
+            free(token_command);
+            exit(1);
+        }
+        int fd_in = open(in_file,in_flags, S_IRUSR | S_IWUSR);
+        if (fd_in < 0)
+        {
+            printf("Cannot open %s!\n",in_file);
+            free(token_command);
+            exit(1);
+        }  
+        dup2(fd_in,0);
+        close(fd_in);
+        dup2(fd_out,1);
+        close(fd_out);
+        if (execvp(token_command[0],token_command)<0)
+        {
+            printf("Error: execvp failed!\n");
+            free(token_command);
+            exit(1);
+        }
+        free(token_command);
+    }
     return 1;
 }
 
