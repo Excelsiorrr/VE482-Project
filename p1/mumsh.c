@@ -136,7 +136,7 @@ int redirection(char** token, int* redirect_para)
     }
     else if (status == 4) //[command] [> or >>] [filename1] [filename2] [<] [filename3]
     {
-        char** token_command = token;
+        char** token_command = malloc(sizeof(char*)*1024);
         int index = 0; // count for new command
         int track = 0; // track index for original command
         while (token[track] != NULL)
@@ -152,9 +152,9 @@ int redirection(char** token, int* redirect_para)
                 index++;
             }
         }
-        token_command[index+1] = NULL;
-        char* in_file = token_command[in_pos+1];
-        char* out_file = token_command[out_pos+1];
+        token_command[index] = NULL;
+        char* in_file = token[in_pos+1];
+        char* out_file = token[out_pos+1];
         int fd_out = open(out_file,out_flags, S_IRUSR | S_IWUSR);
         if (fd_out < 0)
         {
