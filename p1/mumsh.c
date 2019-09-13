@@ -102,7 +102,7 @@ int redirection(char** token, int* redirect_para)
             exit(1);
         }
     }
-    else if (status == 1) //only [command] [> or >>] [filename]
+    else if (status == 1 || status == 2) //only [command] [> or >>] [filename]
     {
         int pos = (status==1 ? out_pos : in_pos);
         int flags = (status==1 ? out_flags : in_flags);
