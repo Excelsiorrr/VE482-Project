@@ -55,17 +55,13 @@ int* check_redirection(char** token)
     while (token[pos] != NULL)
     {
         if (strcmp(token[pos],"<")==0)
-        {
             in_pos = pos;
-            redirect_para[1] = out_pos;
-        }
         else if (strcmp(token[pos],">")==0)
-        {
             out_pos = pos;
-            redirect_para[2] = in_pos;
-        }
         pos++;
     }
+    redirect_para[1] = out_pos;
+    redirect_para[2] = in_pos;
     if (out_pos == 1025 && in_pos == 1025)
         redirect_para[0] = 0;
     else if (out_pos != 1025 && in_pos == 1025)
