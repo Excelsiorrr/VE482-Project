@@ -9,7 +9,7 @@ void mum_loop();
 char* mum_read();
 char** mum_parse(char* user_input);
 int mum_execute(char** token);
-int check_redirection(char* user_input);
+int* check_redirection(char** token);
 
 int main()
 {
@@ -22,12 +22,14 @@ void mum_loop() //in constant loop
     {
         printf("mumsh $ ");
         char* user_input = mum_read();
-        char** token = mum_parse(user_input);    
+        char** token = mum_parse(user_input); 
+        int* redirect_para;   
         if (token != NULL)
         {
             if (strcmp(token[0],"exit")==0)
                 break;
-            printf("%d",check_redirection(user_input));
+            redirect_para = check_redirection(token);
+            printf("%d %d %d",redirect_para[0],redirect_para[1],redirect_para[2]);
             mum_execute(token);
 
         }
@@ -36,30 +38,48 @@ void mum_loop() //in constant loop
     } while (1);
 }
 
-// 0: no redirection
-// 1: only >
-// 2: only <
-// 3: both ">" "<" exists, order: ">" appears first
-// 4: both ">" "<" exists, order: "<" appears first
-int check_redirection(char* user_input)
+
+// return int* redirect_para = {int status, int out_pos, int in_pos}
+    // status:
+    // 0: no redirection
+    // 1: only >
+    // 2: only <
+    // 3: both ">" "<" exists, order: ">" appears first
+    // 4: both ">" "<" exists, order: "<" appears first
+int* check_redirection(char** token)
 {
-    char* out = strstr(user_input,">");
-    char* in = strstr(user_input,"<");
-    if (out == NULL && in == NULL)
-        return 0;
-    else if (out != NULL && in == NULL)
-        return 1;
-    else if (out == NULL && in != NULL)
-        return 2;
+    int* redirect_para = malloc(sizeof(int)*3);
+    int pos = 0;
+    int out_pos = 1025;
+    int in_pos = 1025;
+    while (token[pos] != NULL)
+    {
+        if (strcmp(token[pos],"<")==0)
+        {
+            in_pos = pos;
+            redirect_para[1] = out_pos;
+        }
+        else if (strcmp(token[pos],">")==0)
+        {
+            out_pos = pos;
+            redirect_para[2] = in_pos;
+        }
+        pos++;
+    }
+    if (out_pos == 1025 && in_pos == 1025)
+        redirect_para[0] = 0;
+    else if (out_pos != 1025 && in_pos == 1025)
+        redirect_para[0] = 1;
+    else if (out_pos == 1025 && in_pos != 1025)
+        redirect_para[0] = 2;
     else
     {
-        //char* out_within_in = strstr(in,">");
-        char* in_within_out = strstr(out,"<");
-        if (in_within_out!=NULL)
-            return 3;
+        if (out_pos < in_pos)
+            redirect_para[0] = 3;
         else
-            return 4;
+            redirect_para[0] = 4;
     }
+    return redirect_para;
 }
 
 
