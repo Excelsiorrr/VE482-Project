@@ -83,6 +83,7 @@ int redirection(char** token, int* redirect_para)
 {
     int status = redirect_para[0];
     int out_pos = redirect_para[1];
+    printf("%d %d %d",status,out_pos,redirect_para[2]);
     //int in_pos = redirect_para[2];
     if (status == 0) //no redirection
     {
