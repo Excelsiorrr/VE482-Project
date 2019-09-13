@@ -39,14 +39,11 @@ void mum_loop() //in constant loop
 
 // return int* redirect_para = {int status, int out_pos, int in_pos, int if_append}
     //             0                    |       1       |     2     |   3   |
-    //          status                  |   out_pos     |   in_pos  |
-    // 0:   no redirection              |    1025       |   1025    |
+    //          status                  |   out_pos     |   in_pos  | if_append = 0 if no "<<"
+    // 0:   no redirection              |    1025       |   1025    | if_append = 1 if "<<" exists
     // 1:   only (> or >>)              |   ?<1025      |   1025    |
     // 2:   only <                      |   1025        |  <1025    |
     // 3:   both ">/>>" "<" exists,     |  ?smaller     |   bigger  |
-    //      order: ">/>>" appears first |               |           |
-    // 4:   both ">/>>" "<" exists      |  ?bigger      |   smaller |
-    //      order: "<" appears first    |               |           |
 int* check_redirection(char** token)
 {
     int* redirect_para = malloc(sizeof(int)*3);
@@ -77,12 +74,7 @@ int* check_redirection(char** token)
     else if (out_pos == 1025 && in_pos != 1025)
         redirect_para[0] = 2;
     else
-    {
-        if (out_pos < in_pos)
-            redirect_para[0] = 3;
-        else
-            redirect_para[0] = 4;
-    }
+        redirect_para[0] = 3;
     return redirect_para;
 }
 
@@ -134,7 +126,7 @@ int redirection(char** token, int* redirect_para)
             exit(1);
         }
     }
-    else if (status == 4) //[command] [> or >>] [filename1] [filename2] [<] [filename3]
+    else//[command] [> or >>] [filename1] [filename2] [<] [filename3]
     {
         char** token_command = malloc(sizeof(char*)*1024);
         int index = 0; // count for new command
