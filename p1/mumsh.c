@@ -83,9 +83,9 @@ int redirection(char** token, int* redirect_para)
 {
     int status = redirect_para[0];
     int out_pos = redirect_para[1];
-    printf("%d %d %d",status,out_pos,redirect_para[2]);
+    //printf("%d %d %d",status,out_pos,redirect_para[2]);
     //int in_pos = redirect_para[2];
-    if (status == 0) //no redirection
+    if (status == 0) //no redirection, just execute the command
     {
         if (execvp(token[0],token)<0)
         {
@@ -96,8 +96,7 @@ int redirection(char** token, int* redirect_para)
     else if (status == 1) //only >
     {
         char** token_command = token;
-        token_command = realloc(token_command,sizeof(char*)*out_pos);
-
+        token_command[out_pos] = NULL;
         int pos = 0;
         while (token_command[pos]!=NULL)
         {
@@ -106,22 +105,19 @@ int redirection(char** token, int* redirect_para)
         }
 
         char* file_name = token[out_pos+1];
-        int fd = open(file_name,O_CREAT|O_WRONLY|O_TRUNC,S_IRWXU); //everyone can read/write/exeucute.
+        int fd = open(file_name,O_RDWR | O_CREAT, S_IRUSR | S_IWUSR); //everyone can read/write/exeucute.
         if (fd < 0)
         {
             perror("Cannot open\n");
-            free(token_command);
             return -1;
         }
-        dup2(fd,1);
+        dup2(fd,1); // redirect stdout to file
         close(fd);
         if (execvp(token_command[0],token_command)<0)
         {
             printf("Error:execvp failed!\n");
-            free(token_command);
             exit(1);
         }
-        free(token_command);
     }
     return 1;
 }
