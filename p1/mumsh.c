@@ -37,15 +37,15 @@ void mum_loop() //in constant loop
 }
 
 
-// return int* redirect_para = {int status, int out_pos, int in_pos}
-    //             0                    |       1       |     2     |
+// return int* redirect_para = {int status, int out_pos, int in_pos, int if_append}
+    //             0                    |       1       |     2     |   3   |
     //          status                  |   out_pos     |   in_pos  |
-    // 0:   no redirection              |    1025       |   1025    |  
-    // 1:   only >                      |   <1025       |   1025    |   
+    // 0:   no redirection              |    1025       |   1025    |
+    // 1:   only (> or >>)              |   ?<1025      |   1025    |
     // 2:   only <                      |   1025        |  <1025    |
-    // 3:   both ">" "<" exists,        |   smaller     |   bigger  |
-    //      order: ">" appears first    |               |           |
-    // 4:   both ">" "<" exists         |   bigger      |   smaller |
+    // 3:   both ">/>>" "<" exists,     |  ?smaller     |   bigger  |
+    //      order: ">/>>" appears first |               |           |
+    // 4:   both ">/>>" "<" exists      |  ?bigger      |   smaller |
     //      order: "<" appears first    |               |           |
 int* check_redirection(char** token)
 {
@@ -53,16 +53,23 @@ int* check_redirection(char** token)
     int pos = 0;
     int out_pos = 1025;
     int in_pos = 1025;
+    int if_append = 0;
     while (token[pos] != NULL)
     {
         if (strcmp(token[pos],"<")==0)
             in_pos = pos;
         else if (strcmp(token[pos],">")==0)
             out_pos = pos;
+        else if (strcmp(token[pos],">>")==0)
+        {
+            if_append = 1;
+            out_pos = pos;
+        }
         pos++;
     }
     redirect_para[1] = out_pos;
     redirect_para[2] = in_pos;
+    redirect_para[3] = if_append;
     if (out_pos == 1025 && in_pos == 1025)
         redirect_para[0] = 0;
     else if (out_pos != 1025 && in_pos == 1025)
@@ -85,6 +92,7 @@ int redirection(char** token, int* redirect_para)
     int out_pos = redirect_para[1];
     //printf("%d %d %d",status,out_pos,redirect_para[2]);
     //int in_pos = redirect_para[2];
+    int out_flags = (redirect_para[3]==0 ? O_RDWR | O_CREAT|O_TRUNC: O_RDWR|O_CREAT|O_APPEND);
     if (status == 0) //no redirection, just execute the command
     {
         if (execvp(token[0],token)<0)
@@ -93,7 +101,7 @@ int redirection(char** token, int* redirect_para)
             exit(1);
         }
     }
-    else if (status == 1) //only >
+    else if (status == 1) //only [command] [> or >>] [filename]
     {
         char** token_command = token;
         token_command[out_pos] = NULL;
@@ -105,7 +113,7 @@ int redirection(char** token, int* redirect_para)
         }
 
         char* file_name = token[out_pos+1];
-        int fd = open(file_name,O_RDWR | O_CREAT, S_IRUSR | S_IWUSR); //everyone can read/write/exeucute.
+        int fd = open(file_name,out_flags, S_IRUSR | S_IWUSR); //everyone can read/write/exeucute.
         if (fd < 0)
         {
             perror("Cannot open\n");
