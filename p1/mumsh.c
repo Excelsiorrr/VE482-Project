@@ -91,8 +91,9 @@ int redirection(char** token, int* redirect_para)
     int status = redirect_para[0];
     int out_pos = redirect_para[1];
     //printf("%d %d %d",status,out_pos,redirect_para[2]);
-    //int in_pos = redirect_para[2];
+    int in_pos = redirect_para[2];
     int out_flags = (redirect_para[3]==0 ? O_RDWR | O_CREAT|O_TRUNC: O_RDWR|O_CREAT|O_APPEND);
+    int in_flags = O_RDONLY;
     if (status == 0) //no redirection, just execute the command
     {
         if (execvp(token[0],token)<0)
@@ -101,25 +102,23 @@ int redirection(char** token, int* redirect_para)
             exit(1);
         }
     }
-    else if (status == 1) //only [command] [> or >>] [filename]
+    else if (status == 1 || status == 2) //only [command] [> or >>] [filename]
     {
+        int pos = (status==1 ? out_pos : in_pos);
+        int flags = (status==1 ? out_flags : in_flags);
         char** token_command = token;
-        token_command[out_pos] = NULL;
-        int pos = 0;
-        while (token_command[pos]!=NULL)
-        {
-            printf("%s ",token_command[pos]);
-            pos++;
-        }
-
-        char* file_name = token[out_pos+1];
-        int fd = open(file_name,out_flags, S_IRUSR | S_IWUSR); //everyone can read/write/exeucute.
+        token_command[pos] = NULL;
+        char* file_name = token[pos+1];
+        int fd = open(file_name,flags, S_IRUSR | S_IWUSR); //everyone can read/write/exeucute.
         if (fd < 0)
         {
             perror("Cannot open\n");
             return -1;
         }
-        dup2(fd,1); // redirect stdout to file
+        if (status == 1)
+            dup2(fd,1); // redirect stdout to file
+        else
+            dup2(fd,0); // redirect file to stdin
         close(fd);
         if (execvp(token_command[0],token_command)<0)
         {
