@@ -9,7 +9,7 @@ void mum_loop();
 char* mum_read();
 char** mum_parse(char* user_input);
 int mum_execute(char** token);
-
+int check_redirection(char* user_input);
 
 int main()
 {
@@ -27,6 +27,7 @@ void mum_loop() //in constant loop
         {
             if (strcmp(token[0],"exit")==0)
                 break;
+            printf("%d",check_redirection(user_input));
             mum_execute(token);
 
         }
@@ -34,6 +35,34 @@ void mum_loop() //in constant loop
         free(token);
     } while (1);
 }
+
+// 0: no redirection
+// 1: only >
+// 2: only <
+// 3: both ">" "<" exists, order: ">" appears first
+// 4: both ">" "<" exists, order: "<" appears first
+int check_redirection(char* user_input)
+{
+    char* out = strstr(user_input,">");
+    char* in = strstr(user_input,"<");
+    if (out == NULL && in == NULL)
+        return 0;
+    else if (out != NULL && in == NULL)
+        return 1;
+    else if (out == NULL && in != NULL)
+        return 2;
+    else
+    {
+        //char* out_within_in = strstr(in,">");
+        char* in_within_out = strstr(out,"<");
+        if (in_within_out!=NULL)
+            return 3;
+        else
+            return 4;
+    }
+}
+
+
 
 int mum_execute(char** token)
 {
