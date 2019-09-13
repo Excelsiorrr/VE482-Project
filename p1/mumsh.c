@@ -107,7 +107,6 @@ int redirection(char** token, int* redirect_para)
         int pos = (status==1 ? out_pos : in_pos);
         int flags = (status==1 ? out_flags : in_flags);
         char** token_command = token;
-        token_command[pos] = NULL;
         char* file_name = token[pos+1];
 
         int ppos = pos+2;
@@ -137,14 +136,14 @@ int redirection(char** token, int* redirect_para)
     }
     else if (status == 4) //[command] [> or >>] [filename1] [filename2] [<] [filename3]
     {
-        char** token_command = malloc(sizeof(char*)*1024);
+        char** token_command = token;
         int index = 0; // count for new command
         int track = 0; // track index for original command
         while (token[track] != NULL)
         {
-            if (track == out_pos || track == (out_pos+1) || track == (in_pos) || track == (in_pos+1))
+            if (track == out_pos || track == (in_pos))
             {
-                track++;
+                track = track + 2;
             }
             else
             {
@@ -153,7 +152,7 @@ int redirection(char** token, int* redirect_para)
                 index++;
             }
         }
-        token_command = realloc(token_command,sizeof(char*)*index);
+        token_command[index] = NULL;
         char* in_file = token[in_pos+1];
         char* out_file = token[out_pos+1];
         int fd_out = open(out_file,out_flags, S_IRUSR | S_IWUSR);
@@ -170,34 +169,17 @@ int redirection(char** token, int* redirect_para)
             free(token_command);
             exit(1);
         }
-        pid_t pid,wpid;
-        pid = fork();
-        if (pid == -1)
+        dup2(fd_in,0);
+        close(fd_in);
+        dup2(fd_out,1);
+        close(fd_out);
+        if (execvp(token_command[0],token_command)<0)
         {
-            perror("Fork Error");
+            printf("Error: execvp failed!\n");
+            free(token_command);
             exit(1);
         }
-        else if (pid == 0) //child process
-        {
-            dup2(fd_in,0);
-            close(fd_in);
-            if (execvp(token_command[0],token_command)<0)
-            {
-                printf("Error: execvp failed!\n");
-                free(token_command);
-                exit(1);
-            }
-            free(token_command);
-        }
-        else //parent process
-        {
-            do
-            {
-                wpid = waitpid(pid,&status,0);
-            } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-            dup2(fd_out,1);
-            close(fd_out);
-        }
+        free(token_command);
     }
     return 1;
 }
