@@ -184,8 +184,10 @@ int redirection(char** token, int* redirect_para)
             if (execvp(token_command[0],token_command)<0)
             {
                 printf("Error: execvp failed!\n");
+                free(token_command);
                 exit(1);
             }
+            free(token_command);
         }
         else //parent process
         {
@@ -195,13 +197,6 @@ int redirection(char** token, int* redirect_para)
             } while (!WIFEXITED(status) && !WIFSIGNALED(status));
             dup2(fd_out,1);
             close(fd_out);
-            if (execvp(token_command[0],token_command)<0)
-            {
-                printf("Error: execvp failed!\n");
-                free(token_command);
-                exit(1);
-            }
-            free(token_command);
         }
     }
     return 1;
