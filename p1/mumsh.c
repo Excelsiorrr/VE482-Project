@@ -135,7 +135,7 @@ int redirection(char** token, int* redirect_para)
             exit(1);
         }
     }
-    else //[command] [> or >>] [filename1] [filename2] [<] [filename3]
+    else if (status == 4) //[command] [> or >>] [filename1] [filename2] [<] [filename3]
     {
         char** token_command = malloc(sizeof(char*)*1024);
         int index = 0; // count for new command
@@ -169,18 +169,35 @@ int redirection(char** token, int* redirect_para)
             printf("Cannot open %s!\n",in_file);
             free(token_command);
             exit(1);
-        }  
-        dup2(fd_in,0);
-        close(fd_in);
-        dup2(fd_out,1);
-        close(fd_out);
-        if (execvp(token_command[0],token_command)<0)
+        }
+        pid_t pid,wpid;
+        pid = fork();
+        if (pid == -1)
         {
-            printf("Error: execvp failed!\n");
-            free(token_command);
+            perror("Fork Error");
             exit(1);
         }
-        free(token_command);
+        else if (pid == 0) //child process
+        {
+            dup2(fd_in,0);
+            close(fd_in);
+        }
+        else //parent process
+        {
+            do
+            {
+                wpid = waitpid(pid,&status,0);
+            } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+            dup2(fd_out,1);
+            close(fd_out);
+            if (execvp(token_command[0],token_command)<0)
+            {
+                printf("Error: execvp failed!\n");
+                free(token_command);
+                exit(1);
+            }
+            free(token_command);
+        }
     }
     return 1;
 }
