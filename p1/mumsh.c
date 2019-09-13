@@ -181,6 +181,11 @@ int redirection(char** token, int* redirect_para)
         {
             dup2(fd_in,0);
             close(fd_in);
+            if (execvp(token_command[0],token_command)<0)
+            {
+                printf("Error: execvp failed!\n");
+                exit(1);
+            }
         }
         else //parent process
         {
