@@ -29,10 +29,7 @@ void mum_loop() //in constant loop
         {
             if (strcmp(token[0],"exit")==0)
                 break;
-            int* redirect_para = check_redirection(token);
-            printf("%d %d %d",redirect_para[0],redirect_para[1],redirect_para[2]);
             mum_execute(token);
-            free(redirect_para);
         }
         free(user_input);
         free(token);
@@ -99,6 +96,14 @@ int redirection(char** token, int* redirect_para)
     {
         char** token_command = token;
         token_command = realloc(token_command,sizeof(char*)*out_pos);
+
+        int pos = 0;
+        while (token_command[pos]!=NULL)
+        {
+            printf("%s ",token_command[pos]);
+            pos++;
+        }
+
         char* file_name = token[out_pos+1];
         int fd = open(file_name,O_CREAT|O_WRONLY|O_TRUNC,S_IRWXU); //everyone can read/write/exeucute.
         if (fd < 0)
@@ -135,6 +140,7 @@ int mum_execute(char** token)
     {
         int* redirect_para = check_redirection(token);
         redirection(token,redirect_para);
+        free (redirect_para);
     }
     else //parent process
     {
