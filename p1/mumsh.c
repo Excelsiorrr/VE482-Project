@@ -112,7 +112,7 @@ int redirection(char** token, int* redirect_para)
         int fd = open(file_name,flags, S_IRUSR | S_IWUSR); //everyone can read/write/exeucute.
         if (fd < 0)
         {
-            //printf("Cannot open %s!\n",file_name);
+            perror("Cannot open %s!\n");
             exit(1);
         }
         if (status == 1)
@@ -122,7 +122,7 @@ int redirection(char** token, int* redirect_para)
         close(fd);
         if (execvp(token_command[0],token_command)<0)
         {
-            printf("Error:execvp failed!\n");
+            perror("Error:execvp failed!\n");
             exit(1);
         }
     }
@@ -150,14 +150,14 @@ int redirection(char** token, int* redirect_para)
         int fd_out = open(out_file,out_flags, S_IRUSR | S_IWUSR);
         if (fd_out < 0)
         {
-            printf("Cannot open %s!\n",out_file);
+            perror("Cannot open file\n");
             free(token_command);
             exit(1);
         }
         int fd_in = open(in_file,in_flags, S_IRUSR | S_IWUSR);
         if (fd_in < 0)
         {
-            printf("Cannot open %s!\n",in_file);
+            perror("Cannot open file!\n");
             free(token_command);
             exit(1);
         }
@@ -167,7 +167,7 @@ int redirection(char** token, int* redirect_para)
         close(fd_out);
         if (execvp(token_command[0],token_command)<0)
         {
-            printf("Error: execvp failed!\n");
+            perror("Error: execvp failed!\n");
             free(token_command);
             exit(1);
         }
