@@ -46,7 +46,7 @@ void mum_loop() //in constant loop
     // 3:   both ">/>>" "<" exists,     |  ?smaller     |   bigger  |
 int* check_redirection(char** token)
 {
-    int* redirect_para = malloc(sizeof(int)*3);
+    int* redirect_para = malloc(sizeof(int)*4);
     int pos = 0;
     int out_pos = 1025;
     int in_pos = 1025;
