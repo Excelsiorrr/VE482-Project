@@ -112,7 +112,7 @@ int redirection(char** token, int* redirect_para)
         int fd = open(file_name,flags, S_IRUSR | S_IWUSR); //everyone can read/write/exeucute.
         if (fd < 0)
         {
-            printf("Cannot open %s!\n",file_name);
+            //printf("Cannot open %s!\n",file_name);
             exit(1);
         }
         if (status == 1)
