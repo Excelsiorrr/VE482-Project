@@ -16,24 +16,22 @@ int* check_redirection(char** token);
 int main()
 {
      mum_loop();
+     return EXIT_SUCCESS;
 }
 
 void mum_loop() //in constant loop
 {
+    int status;
     do
     {
-        printf("mumsh $ ");
+        fprintf(stdout,"mumsh $ ");
+        fflush(stdout);
         char* user_input = mum_read();
         char** token = mum_parse(user_input); 
-        if (token != NULL)
-        {
-            if (strcmp(token[0],"exit")==0)
-                break;
-            mum_execute(token);
-        }
+        status = mum_execute(token);
         free(user_input);
         free(token);
-    } while (1);
+    } while (status);
 }
 
 
@@ -90,7 +88,8 @@ int redirection(char** token, int* redirect_para)
     {
         if (execvp(token[0],token)<0)
         {
-            printf("Error: execvp failed!\n");
+            fprintf(stdout,"Error: execvp failed!\n");
+            fflush(stdout);
             exit(1);
         }
     }
@@ -112,7 +111,8 @@ int redirection(char** token, int* redirect_para)
         int fd = open(file_name,flags, S_IRUSR | S_IWUSR); //everyone can read/write/exeucute.
         if (fd < 0)
         {
-            perror("Cannot open %s!\n");
+            fprintf(stdout,"Cannot open %s!\n",file_name);
+            fflush(stdout);
             exit(1);
         }
         if (status == 1)
@@ -122,7 +122,8 @@ int redirection(char** token, int* redirect_para)
         close(fd);
         if (execvp(token_command[0],token_command)<0)
         {
-            perror("Error:execvp failed!\n");
+            fprintf(stdout,"Error:execvp failed!\n");
+            fflush(stdout);
             exit(1);
         }
     }
@@ -150,14 +151,16 @@ int redirection(char** token, int* redirect_para)
         int fd_out = open(out_file,out_flags, S_IRUSR | S_IWUSR);
         if (fd_out < 0)
         {
-            perror("Cannot open file\n");
+            fprintf(stdout,"Cannot open file %s\n",out_file);
+            fflush(stdout);
             free(token_command);
             exit(1);
         }
         int fd_in = open(in_file,in_flags, S_IRUSR | S_IWUSR);
         if (fd_in < 0)
         {
-            perror("Cannot open file!\n");
+            fprintf(stdout,"Cannot open file %s!\n", in_file);
+            fflush(stdout);
             free(token_command);
             exit(1);
         }
@@ -167,7 +170,8 @@ int redirection(char** token, int* redirect_para)
         close(fd_out);
         if (execvp(token_command[0],token_command)<0)
         {
-            perror("Error: execvp failed!\n");
+            fprintf(stdout,"Error: execvp failed!\n");
+            fflush(stdout);
             free(token_command);
             exit(1);
         }
@@ -179,19 +183,26 @@ int redirection(char** token, int* redirect_para)
 int mum_execute(char** token)
 {
     if (token==NULL) return 1;
+    if (strcmp(token[0],"exit")==0)
+    {
+        fprintf(stdout,"exit");
+        fflush(stdout);
+        return 0;
+    }
     pid_t pid,wpid;
     pid = fork();
     int status;
-    if (pid == -1)
+    if (pid < 0)
     {
-        perror("Fork Error");
+        fprintf(stdout,"Fork Error\n");
+        fflush(stdout);
         exit(1);
     }
     else if (pid == 0) //child process
     {
         int* redirect_para = check_redirection(token);
         redirection(token,redirect_para);
-        free (redirect_para);
+        free(redirect_para);
     }
     else //parent process
     {
@@ -208,7 +219,50 @@ char* mum_read() //reads from standard input
     size_t read;
     char* user_input = NULL;
     getline(&user_input,&read,stdin);
-    return user_input;
+    size_t length = strlen(user_input);
+    char* mod_input = malloc(sizeof(char)*(length+10));
+    int pos = 0;
+    unsigned long i = 0;
+    while (i < length)
+    {
+        if (user_input[i] == '<')
+        {
+            mod_input[pos] = ' ';
+            mod_input[pos+1] = '<';
+            mod_input[pos+2] = ' ';
+            pos = pos + 3;
+            i++;
+        }
+        else if (user_input[i] == '>')
+        {
+            if (user_input[i+1] == '>')
+            {
+                mod_input[pos] = ' ';
+                mod_input[pos+1] = '>';
+                mod_input[pos+2] = '>';
+                mod_input[pos+3] = ' ';
+                pos = pos + 4;
+                i = i+2;
+            }
+            else
+            {
+                mod_input[pos] = ' ';
+                mod_input[pos+1] = '>';
+                mod_input[pos+2] = ' ';
+                pos = pos + 3;
+                i++;
+            }
+        }
+        else
+        {
+            mod_input[pos] = user_input[i];
+            pos++;i++;
+        }
+        
+    }
+    mod_input[pos] = '\0';
+    free(user_input);
+    return mod_input;
 }
 
 char** mum_parse(char* user_input) //parse from stdin
@@ -216,7 +270,7 @@ char** mum_parse(char* user_input) //parse from stdin
     if (user_input == NULL) return NULL;
     int token_size = 100;
     int step_size = 10;
-    char* delim = " \n";
+    char* delim = " \t\r\n\a";
     char** token = malloc(sizeof(char*)*token_size);
     int index = 0;
     char* parsing = strtok(user_input,delim);
