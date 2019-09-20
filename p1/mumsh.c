@@ -6,12 +6,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 
 void mum_loop();
 char* mum_read();
 char** mum_parse(char* user_input);
 int mum_execute(char** token);
 int* check_redirection(char** token);
+int piping(char** token);
 
 int main()
 {
@@ -25,6 +27,7 @@ void mum_loop() //in constant loop
     do
     {
         fprintf(stdout,"mumsh $ ");
+        signal(SIGINT, SIG_DFL);
         fflush(stdout);
         char* user_input = mum_read();
         char** token = mum_parse(user_input); 
@@ -35,20 +38,22 @@ void mum_loop() //in constant loop
 }
 
 
-// return int* redirect_para = {int status, int out_pos, int in_pos, int if_append}
-    //             0                    |       1       |     2     |   3   |
-    //          status                  |   out_pos     |   in_pos  | if_append = 0 if no "<<"
-    // 0:   no redirection              |    1025       |   1025    | if_append = 1 if "<<" exists
-    // 1:   only (> or >>)              |   ?<1025      |   1025    |
-    // 2:   only <                      |   1025        |  <1025    |
-    // 3:   both ">/>>" "<" exists,     |  ?smaller     |   bigger  |
+// return int* redirect_para = {int status, int out_pos, int in_pos, int if_append, int pipe_pos}
+    //             0                    |       1       |     2     |   3                           |       4       |
+    //          status                  |   out_pos     |   in_pos  | if_append = 0 if no "<<"      |  first pos of pipe
+    // 0:   no redirection              |    1025       |   1025    | if_append = 1 if "<<" exists  |
+    // 1:   only (> or >>)              |   ?<1025      |   1025    |                               |
+    // 2:   only <                      |   1025        |  <1025    |                               |
+    // 3:   both ">/>>" "<" exists,     |  ?smaller     |   bigger  |                               |
 int* check_redirection(char** token)
 {
-    int* redirect_para = malloc(sizeof(int)*4);
+    int* redirect_para = malloc(sizeof(int)*5);
     int pos = 0;
     int out_pos = 1025;
     int in_pos = 1025;
     int if_append = 0;
+    int pipe_pos = -1;
+    int if_pipe = 0;
     while (token[pos] != NULL)
     {
         if (strcmp(token[pos],"<")==0)
@@ -60,11 +65,17 @@ int* check_redirection(char** token)
             if_append = 1;
             out_pos = pos;
         }
+        else if (strcmp(token[pos],"|")==0 && if_pipe==0)
+        {
+            pipe_pos = pos;
+            if_pipe = 1;
+        }
         pos++;
     }
     redirect_para[1] = out_pos;
     redirect_para[2] = in_pos;
     redirect_para[3] = if_append;
+    redirect_para[4] = pipe_pos;
     if (out_pos == 1025 && in_pos == 1025)
         redirect_para[0] = 0;
     else if (out_pos != 1025 && in_pos == 1025)
@@ -76,8 +87,13 @@ int* check_redirection(char** token)
     return redirect_para;
 }
 
-int redirection(char** token, int* redirect_para)
+
+
+
+// perform single command even if no redirections exist
+int redirection(char** token)
 {
+    int* redirect_para = check_redirection(token);
     int status = redirect_para[0];
     int out_pos = redirect_para[1];
     //printf("%d %d %d",status,out_pos,redirect_para[2]);
@@ -113,6 +129,8 @@ int redirection(char** token, int* redirect_para)
         {
             fprintf(stdout,"Cannot open %s!\n",file_name);
             fflush(stdout);
+            free(token_command);
+            free(redirect_para);
             exit(1);
         }
         if (status == 1)
@@ -124,8 +142,12 @@ int redirection(char** token, int* redirect_para)
         {
             fprintf(stdout,"Error:execvp failed!\n");
             fflush(stdout);
+            free(token_command);
+            free(redirect_para);
             exit(1);
         }
+        free(token_command);
+        free(redirect_para);
     }
     else//[command] [> or >>] [filename1] [filename2] [<] [filename3]
     {
@@ -154,6 +176,7 @@ int redirection(char** token, int* redirect_para)
             fprintf(stdout,"Cannot open file %s\n",out_file);
             fflush(stdout);
             free(token_command);
+            free(redirect_para);
             exit(1);
         }
         int fd_in = open(in_file,in_flags, S_IRUSR | S_IWUSR);
@@ -162,6 +185,7 @@ int redirection(char** token, int* redirect_para)
             fprintf(stdout,"Cannot open file %s!\n", in_file);
             fflush(stdout);
             free(token_command);
+            free(redirect_para);
             exit(1);
         }
         dup2(fd_in,0);
@@ -173,10 +197,71 @@ int redirection(char** token, int* redirect_para)
             fprintf(stdout,"Error: execvp failed!\n");
             fflush(stdout);
             free(token_command);
+            free(redirect_para);
             exit(1);
         }
         free(token_command);
+        free(redirect_para);
     }
+    return 1;
+}
+
+int piping(char** token)
+{
+    int* redirect_para = check_redirection(token);
+    int pos = redirect_para[4];
+    if (pos == -1)
+    {
+        redirection(token);
+    }
+    else
+    {
+        char** arg1 = malloc(sizeof(char*)*(pos+1));
+        char** arg2 = malloc(sizeof(char*)*1024);
+        int index = 0;
+        while (token[index]!=NULL)
+        {
+            if (index < pos)
+                arg1[index] = token[index];
+            else if (index > pos)
+                arg2[index-pos-1] = token[index];
+            index++;
+        }
+        arg1[pos] = NULL;
+        arg2[index-pos-1] = NULL;
+        arg2 = realloc(arg2,sizeof(char*)*(index-pos));
+        int fd[2];
+        pipe(fd);
+        pid_t pid ,wpid;
+        pid = fork();
+        int status;
+        if (pid < 0)
+        {
+            fprintf(stdout,"Fork Error\n");
+            fflush(stdout);
+            exit(1);
+        }
+        else if (pid == 0) //child process
+        {
+            close(1);
+            close(fd[0]);
+            dup2(fd[1],1);
+            piping(arg1);
+        }
+        else
+        {
+            close(0);
+            close(fd[1]);
+            dup2(fd[0], 0);
+            piping(arg2);
+            do
+            {
+                wpid = waitpid(pid,&status,0);
+            } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+        }
+        
+    }
+    free(redirect_para);
     return 1;
 }
 
@@ -200,9 +285,7 @@ int mum_execute(char** token)
     }
     else if (pid == 0) //child process
     {
-        int* redirect_para = check_redirection(token);
-        redirection(token,redirect_para);
-        free(redirect_para);
+        piping(token);
     }
     else //parent process
     {
@@ -252,6 +335,14 @@ char* mum_read() //reads from standard input
                 pos = pos + 3;
                 i++;
             }
+        }
+        else if (user_input[i] == '|')
+        {
+            mod_input[pos] = ' ';
+            mod_input[pos+1] = '|';
+            mod_input[pos+2] = ' ';
+            pos = pos + 3;
+            i++;
         }
         else
         {

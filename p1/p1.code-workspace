@@ -6,7 +6,10 @@
 	],
 	"settings": {
 		"files.associations": {
-			"cstring": "c"
+			"cstring": "c",
+			"unistd.h": "c",
+			"string.h": "c",
+			"signal.h": "c"
 		}
 	}
 }
