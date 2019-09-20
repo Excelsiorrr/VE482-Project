@@ -101,34 +101,14 @@ int redirection(char** token)
     int in_flags = O_RDONLY;
     if (status == 0) //no redirection, just execute the command
     {
-        if(strcmp(token[0],"pwd")==0)
-        {
-    	    char *path = malloc(sizeof(char)*100);
-            getcwd(path,100);
-            fprintf(stdout,"%s\n",path);
-            fflush(stdout);
-            free(path);
-		}
-        else if(strcmp(token[0],"cd")==0)
-        {
-    	    if (chdir(token[1]) != 0)
-            {
-                fprintf(stdout,"chdir error\n");
-                fflush(stdout);
-                free(redirect_para);
-                exit(1);
-            }
-    	}
-        else
-        {
-            if (execvp(token[0],token)<0)
+        if (execvp(token[0],token)<0)
             {
                 fprintf(stdout,"Error: execvp failed!\n");
                 fflush(stdout);
                 free(redirect_para);
                 exit(1);   
             }
-        }
+        
         free(redirect_para);
     }
     else if (status == 1 || status == 2) //only [command] [> or >>] [filename]
@@ -294,8 +274,27 @@ int mum_execute(char** token)
     {
         fprintf(stdout,"exit");
         fflush(stdout);
-        return 0;
+        exit(0);
     }
+    else if(strcmp(token[0],"pwd")==0)
+    {
+    	char *path = malloc(sizeof(char)*100);
+        getcwd(path,100);
+        fprintf(stdout,"%s\n",path);
+        fflush(stdout);
+        free(path);
+        return 1;
+	}
+    else if(strcmp(token[0],"cd")==0)
+    {
+	    if (chdir(token[1]) != 0)
+        {
+            fprintf(stdout,"chdir error\n");
+            fflush(stdout);
+        }
+        return 1;
+    }
+            
     pid_t pid,wpid;
     pid = fork();
     int status;
@@ -308,6 +307,8 @@ int mum_execute(char** token)
     else if (pid == 0) //child process
     {
         piping(token);
+        fprintf(stdout,"finished%d\n",pid);
+        fflush(stdout);
     }
     else //parent process
     {
