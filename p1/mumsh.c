@@ -27,11 +27,10 @@ void mum_loop() //in constant loop
     do
     {
         fprintf(stdout,"mumsh $ ");
-        signal(SIGINT, SIG_DFL);
         fflush(stdout);
         char* user_input = mum_read();
         char** token = mum_parse(user_input); 
-        status = mum_execute(token);
+        status=mum_execute(token);
         free(user_input);
         free(token);
     } while (status);
@@ -102,12 +101,35 @@ int redirection(char** token)
     int in_flags = O_RDONLY;
     if (status == 0) //no redirection, just execute the command
     {
-        if (execvp(token[0],token)<0)
+        if(strcmp(token[0],"pwd")==0)
         {
-            fprintf(stdout,"Error: execvp failed!\n");
+    	    char *path = malloc(sizeof(char)*100);
+            getcwd(path,100);
+            fprintf(stdout,"%s\n",path);
             fflush(stdout);
-            exit(1);
+            free(path);
+		}
+        else if(strcmp(token[0],"cd")==0)
+        {
+    	    if (chdir(token[1]) != 0)
+            {
+                fprintf(stdout,"chdir error\n");
+                fflush(stdout);
+                free(redirect_para);
+                exit(1);
+            }
+    	}
+        else
+        {
+            if (execvp(token[0],token)<0)
+            {
+                fprintf(stdout,"Error: execvp failed!\n");
+                fflush(stdout);
+                free(redirect_para);
+                exit(1);   
+            }
         }
+        free(redirect_para);
     }
     else if (status == 1 || status == 2) //only [command] [> or >>] [filename]
     {
@@ -139,7 +161,7 @@ int redirection(char** token)
             dup2(fd,0); // redirect file to stdin
         close(fd);
         if (execvp(token_command[0],token_command)<0)
-        {
+        {            
             fprintf(stdout,"Error:execvp failed!\n");
             fflush(stdout);
             free(token_command);
