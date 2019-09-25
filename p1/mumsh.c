@@ -252,6 +252,8 @@ int piping(char** token)
         }
         else
         {
+            free(token);
+            free(arg1);
             close(0);
             close(fd[1]);
             dup2(fd[0], 0);
@@ -263,7 +265,6 @@ int piping(char** token)
         }
         
     }
-    free(redirect_para);
     return 1;
 }
 
@@ -272,7 +273,7 @@ int mum_execute(char** token)
     if (token==NULL) return 1;
     if (strcmp(token[0],"exit")==0)
     {
-        fprintf(stdout,"exit");
+        fprintf(stdout,"exit\n");
         fflush(stdout);
         exit(0);
     }
