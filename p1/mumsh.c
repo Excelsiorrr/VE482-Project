@@ -34,7 +34,7 @@ void mum_loop() //in constant loop
         char** token = mum_parse(user_input);
         if (token[0]==NULL)
             continue;
-        status=mum_execute(token);
+        status = mum_execute(token);
         free(user_input);
         free(token);
     } while (status);
@@ -303,7 +303,7 @@ int piping(char** token)
 
 int mum_execute(char** token)
 {
-    if (token==NULL) return 1;
+    if (token[0]==NULL) return 1;
     if (strcmp(token[0],"exit")==0)
     {
         return 0;
@@ -352,16 +352,41 @@ int mum_execute(char** token)
 
 char* mum_read() //reads from standard input
 {
-    size_t read;
-    char* user_input = NULL;
-    getline(&user_input,&read,stdin);
+    int base_size = 100;
+    int incre_size = 10;
+    char* user_input = malloc(sizeof(char)*base_size);
+    int pos = 0;
+    while (1)
+    {
+        int c = getchar();
+        if (c == EOF || c == '\n')
+        {
+            user_input[pos] = '\0';
+            return user_input;
+        }
+        else
+            user_input[pos] = c;
+        pos++;
+        if (pos >= base_size)
+        {
+            base_size = base_size + incre_size;
+            user_input = realloc(user_input,base_size);
+        }
+
+    }
+    //getline(&user_input,&read,stdin);
+
+
+
+
+
     size_t length = strlen(user_input);
     if (length==0)
     {
         return user_input;
     }
     char* mod_input = malloc(sizeof(char)*(length+100));
-    int pos = 0;
+    pos = 0;
     unsigned long i = 0;
     while (i < length)
     {
