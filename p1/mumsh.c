@@ -393,11 +393,6 @@ char* mum_read() //reads from standard input
             pos = pos + 3;
             i++;
         }
-        else if (user_input[i]==EOF)
-        {
-            mod_input[pos] = '\0';
-            pos++;i++;
-        }
         else
         {
             mod_input[pos] = user_input[i];
