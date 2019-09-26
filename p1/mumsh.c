@@ -23,7 +23,7 @@ int main()
 
 void mum_loop() //in constant loop
 {
-    int status;
+    int status = 1;
     do
     {
         fprintf(stdout,"mumsh $ ");
@@ -31,7 +31,9 @@ void mum_loop() //in constant loop
         char* user_input = mum_read();
         if (strlen(user_input)==0)
             break;
-        char** token = mum_parse(user_input); 
+        char** token = mum_parse(user_input);
+        if (token[0]==NULL)
+            continue;
         status=mum_execute(token);
         free(user_input);
         free(token);
