@@ -34,6 +34,8 @@ void mum_loop() //in constant loop
         free(user_input);
         free(token);
     } while (status);
+    fprintf(stdout,"exit\n");
+    fflush(stdout);
 }
 
 
@@ -103,6 +105,15 @@ int redirection(char** token)
     {
         if (execvp(token[0],token)<0)
             {
+                if (strcmp(token[0], "pwd") == 0)
+                {
+                    char *path = malloc(sizeof(char) * 100);
+                    getcwd(path, 100);
+                    fprintf(stdout, "%s\n", path);
+                    fflush(stdout);
+                    free(path);
+                    return 1;
+                }
                 fprintf(stdout,"Error: execvp failed!\n");
                 fflush(stdout);
                 free(redirect_para);
@@ -141,7 +152,16 @@ int redirection(char** token)
             dup2(fd,0); // redirect file to stdin
         close(fd);
         if (execvp(token_command[0],token_command)<0)
-        {            
+        {
+            if (strcmp(token[0], "pwd") == 0)
+            {
+                char *path = malloc(sizeof(char) * 100);
+                getcwd(path, 100);
+                fprintf(stdout, "%s\n", path);
+                fflush(stdout);
+                free(path);
+                return 1;
+            }
             fprintf(stdout,"Error:execvp failed!\n");
             fflush(stdout);
             free(token_command);
@@ -196,6 +216,15 @@ int redirection(char** token)
         close(fd_out);
         if (execvp(token_command[0],token_command)<0)
         {
+            if (strcmp(token[0], "pwd") == 0)
+            {
+                char *path = malloc(sizeof(char) * 100);
+                getcwd(path, 100);
+                fprintf(stdout, "%s\n", path);
+                fflush(stdout);
+                free(path);
+                return 1;
+            }
             fprintf(stdout,"Error: execvp failed!\n");
             fflush(stdout);
             free(token_command);
@@ -218,7 +247,7 @@ int piping(char** token)
     }
     else
     {
-        char** arg1 = malloc(sizeof(char*)*(pos+1));
+        char** arg1 = malloc(sizeof(char*)*1024);
         char** arg2 = malloc(sizeof(char*)*1024);
         int index = 0;
         while (token[index]!=NULL)
@@ -270,22 +299,20 @@ int piping(char** token)
 
 int mum_execute(char** token)
 {
-    if (token==NULL) return 1;
+    if (token==NULL) return 0;
     if (strcmp(token[0],"exit")==0)
     {
-        fprintf(stdout,"exit\n");
-        fflush(stdout);
-        exit(0);
+        return(0);
     }
-    else if(strcmp(token[0],"pwd")==0)
-    {
-    	char *path = malloc(sizeof(char)*100);
-        getcwd(path,100);
-        fprintf(stdout,"%s\n",path);
-        fflush(stdout);
-        free(path);
-        return 1;
-	}
+    // else if(strcmp(token[0],"pwd")==0)
+    // {
+    // 	char *path = malloc(sizeof(char)*100);
+    //     getcwd(path,100);
+    //     fprintf(stdout,"%s\n",path);
+    //     fflush(stdout);
+    //     free(path);
+    //     return 1;
+	// }
     else if(strcmp(token[0],"cd")==0)
     {
 	    if (chdir(token[1]) != 0)
@@ -308,8 +335,6 @@ int mum_execute(char** token)
     else if (pid == 0) //child process
     {
         piping(token);
-        fprintf(stdout,"finished%d\n",pid);
-        fflush(stdout);
     }
     else //parent process
     {
@@ -327,7 +352,7 @@ char* mum_read() //reads from standard input
     char* user_input = NULL;
     getline(&user_input,&read,stdin);
     size_t length = strlen(user_input);
-    char* mod_input = malloc(sizeof(char)*(length+10));
+    char* mod_input = malloc(sizeof(char)*(length+100));
     int pos = 0;
     unsigned long i = 0;
     while (i < length)
@@ -367,6 +392,11 @@ char* mum_read() //reads from standard input
             mod_input[pos+2] = ' ';
             pos = pos + 3;
             i++;
+        }
+        else if (user_input[i]==EOF)
+        {
+            mod_input[pos] = '\0';
+            pos++;i++;
         }
         else
         {
