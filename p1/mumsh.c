@@ -13,7 +13,16 @@ char* mum_read();
 char** mum_parse(char* user_input);
 int mum_execute(char** token);
 int* check_redirection(char** token);
+int redirection(char** token);
 int piping(char** token);
+
+void sighandler(int signum) {
+    signal(SIGINT, sighandler); 
+    signum=1;
+    fprintf(stdout,"exit");
+    fflush(stdout);
+    exit(1);
+}
 
 int main()
 {
@@ -23,17 +32,26 @@ int main()
 
 void mum_loop() //in constant loop
 {
-    int status = 1;
+    int status = 1; 
+    signal(SIGINT, sighandler);
     do
     {
         fprintf(stdout,"mumsh $ ");
         fflush(stdout);
         char* user_input = mum_read();
         if (strlen(user_input)==0)
+        {
+            free(user_input);
             break;
+        }
+            
         char** token = mum_parse(user_input);
         if (token[0]==NULL)
+        {
+            free(user_input);
+            free(token);
             continue;
+        }
         status = mum_execute(token);
         free(user_input);
         free(token);
@@ -91,9 +109,6 @@ int* check_redirection(char** token)
         redirect_para[0] = 3;
     return redirect_para;
 }
-
-
-
 
 // perform single command even if no redirections exist
 int redirection(char** token)
@@ -365,13 +380,13 @@ char* mum_read() //reads from standard input
         if (c == EOF)
         {
             user_input[pos] = '\0';
-            return user_input;
+            break;
         }
         else if (c == '\n' || c == '\r')
         {
             user_input[pos] = c;
             user_input[pos+1] = '\0';
-            return user_input;
+            break;
         }
         else
             user_input[pos] = c;
