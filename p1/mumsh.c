@@ -54,7 +54,7 @@ int mum_execute(char** token,char* user_input, Job* job_arry);  //  executing pr
 int* check_redirection(char** token);                           //  given token, return adequate information regarding pipe/redirection
 int redirection(char** token);                                  //  the MAIN function for executing command
 int piping(char** token, int total_pipe);                       //  recursively executing pipe commands
-int check_duplicate(char** token, int in, int out);             //  error checking for input/output duplication
+int check_duplicate(char** token, int total_pipe, int status);  //  error checking for input/output duplication
 void print_jobs(Job* job_arry);                                 //  print information of all running/ended background jobs
 
 
@@ -403,28 +403,116 @@ int redirection(char** token)
     return 1;
 }
 
-int check_duplicate(char** token, int in, int out)
+//status:
+//-1: left most
+//0: mid
+//1: right most
+int check_duplicate(char** token, int total_pipe, int status)
 {
     int* redirect_para = check_redirection(token);
-    if ((in != 0 && redirect_para[2] < 1025) || (redirect_para[7] > 1))
-    {
-        fprintf(stderr,"error: duplicated input redirection\n");
-        error_break = 1;
-        free(redirect_para);
-        return 1;
-    }
-    else if ((out != 1 && redirect_para[1] < 1025) || (redirect_para[6] > 1))
-    {
-        fprintf(stderr,"error: duplicated output redirection\n");
-        error_break = 1;
-        free(redirect_para);
-        return 1;
-    }
-    
+    int num_pipe = redirect_para[5];
+    int num_out = redirect_para[6];
+    int num_in = redirect_para[7];
+    int pos = redirect_para[4];
     free(redirect_para);
-    return 0;
-    
+    if (total_pipe == 0)
+    {
+        if (num_out> 1)
+        {
+            fprintf(stderr,"error: duplicated output redirection\n");
+            error_break = 1;
+            return 1;
+        }
+        else if (num_in > 1)
+        {
+            fprintf(stderr,"error: duplicated input redirection\n");
+            error_break = 1;
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    // total_pipe > 0
+    if (num_pipe == 0)
+    {
+        if ( (status == -1 && num_out>0) || (status == 0 && num_out>0) || num_out>1)
+        {
+            fprintf(stderr,"error: duplicated output redirection\n");
+            error_break = 1;
+            free(token);
+            return 1;
+        }
+        if ( (status==1 && num_in>0)  || (status == 0 && num_in>0) || num_in>1)
+        {
+            fprintf(stderr,"error: duplicated input redirection\n");
+            error_break = 1;
+            free(token);
+            return 1;
+        }
+        else
+        {
+            free(token);
+            return 0;
+        }
+    }
+
+    //total_pipe > 0 && num_pipe > 0
+
+
+    char** arg1 = malloc(sizeof(char*)*1024);
+    char** arg2 = malloc(sizeof(char*)*1024);
+    int index = 0;
+    while (token[index] != NULL)
+    {
+        if (index < pos)
+            arg1[index] = token[index];
+        else if (index > pos)
+            arg2[index - pos - 1] = token[index];
+        index++;
+    }
+    arg1[pos] = NULL;
+    arg2[index - pos - 1] = NULL;
+    arg2 = realloc(arg2, sizeof(char *) * (index - pos + 3));
+    if (total_pipe > num_pipe)
+        free(token);
+
+    //int* redirect_para1 = check_redirection(arg1);
+    int* redirect_para2 = check_redirection(arg2);
+    int num_pipe2 = redirect_para2[5];
+    free(redirect_para2);
+    int status1 = 0;
+    int status2 = 0;
+    if (num_pipe2 == total_pipe - 1)
+    {
+        status1 = -1;
+        if (num_pipe2 == 0)
+        {
+            status2 = 1;
+        }
+        else
+        {
+            status2 = 0;
+        }
+    }
+    if (check_duplicate(arg1,total_pipe,status1))
+    {
+        error_break = 1;
+        return 1;
+    }
+    else
+    {
+        if (check_duplicate(arg2,total_pipe,status2))
+        {
+            error_break = 1;
+            return 1;
+        }
+        error_break = 0;
+        return 0;
+    }
 }
+
 
 int piping(char** token, int total_pipe)
 {
@@ -444,9 +532,6 @@ int piping(char** token, int total_pipe)
         //     fflush(stdout);
         //     temp++;
         // }
-
-        if (check_duplicate(token,0,1) == 1)
-            return 1;
         redirection(token);
         return 1;
     }
@@ -479,11 +564,6 @@ int piping(char** token, int total_pipe)
         {
             dup2(fd[1], 1);
             close(fd[0]);
-            if (check_duplicate(arg1,0,fd[1]) == 1)
-            {
-                free(arg1);
-                exit(0);
-            }
             redirection(arg1);
             close(1);
             
@@ -494,20 +574,15 @@ int piping(char** token, int total_pipe)
             int status;
             pid_arry[pid_num] = pid;
             pid_num++;
-            for (int i = 0; i < pid_num; i++)
-            {
-                waitpid(pid_arry[i], &status, 0);
-            }
+            // for (int i = 0; i < pid_num; i++)
+            // {
+            //     waitpid(pid_arry[i], &status, 0);
+            // }
             
             
             dup2(fd[0],0);
             close(fd[1]);
-            if (check_duplicate(arg2,fd[0],1) == 1)
-            {
-                free(arg1);
-                free(arg2);
-                return 1;
-            }
+            
             if (cur_pipe == 1)
             {
                 pid_t temp = fork();
@@ -578,9 +653,14 @@ int mum_execute(char** token,char* user_input, Job* job_arry)
         signal(SIGINT,sighandler2);
         //signal(SIGINT,SIG_DFL);
         int* redirect_para = check_redirection(token);
+        if (check_duplicate(token,redirect_para[5],0))
+        {
+            free(redirect_para);
+            exit(0);
+        }
         piping(token, redirect_para[5]);
         free(redirect_para);
-
+        free(token);
         exit(0);
     }
     else //parent process
@@ -658,7 +738,7 @@ Read_string * mum_read()
             }
             if (sing == 0 && doub == 0)
             {
-                if (pos >= 1 && !(user_input[pos-1]=='<' || user_input[pos-1]=='>' || user_input[pos-1]=='|'))
+                if ((pos >= 1 && !(user_input[pos-1]=='<' || user_input[pos-1]=='>' || user_input[pos-1]=='|')) || pos == 0)
                 {
                     user_input[pos] = c;
                     user_input[pos+1] = '\0';
