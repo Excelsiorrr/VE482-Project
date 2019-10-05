@@ -444,7 +444,7 @@ int check_duplicate(char** token, int total_pipe, int status)
             free(token);
             return 1;
         }
-        if ( (status==1 && num_in>0)  || (status == 0 && num_in>0) || num_in>1)
+        else if ( (status==1 && num_in>0)  || (status == 0 && num_in>0) || num_in>1)
         {
             fprintf(stderr,"error: duplicated input redirection\n");
             error_break = 1;
@@ -487,17 +487,14 @@ int check_duplicate(char** token, int total_pipe, int status)
     if (num_pipe2 == total_pipe - 1)
     {
         status1 = -1;
-        if (num_pipe2 == 0)
-        {
-            status2 = 1;
-        }
-        else
-        {
-            status2 = 0;
-        }
+    }
+    if (num_pipe2 == 0)
+    {
+        status2 = 1;
     }
     if (check_duplicate(arg1,total_pipe,status1))
     {
+        free(arg2);
         error_break = 1;
         return 1;
     }
@@ -655,6 +652,7 @@ int mum_execute(char** token,char* user_input, Job* job_arry)
         int* redirect_para = check_redirection(token);
         if (check_duplicate(token,redirect_para[5],0))
         {
+            free(token);
             free(redirect_para);
             exit(0);
         }
