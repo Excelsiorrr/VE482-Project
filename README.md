@@ -1,5 +1,5 @@
 #   Intro
-This is a course project of VE482 in UMJI-SJTU. A simple shell named "**mumsh**" is implemented with functionalities of:
+This is a course project of VE482 in UM-SJTU JI. A simple shell named "**mumsh**" is implemented with functionalities of:
 
 *   read/parse/execute user-input commands
 *   support redirection and pipes
@@ -18,7 +18,7 @@ This is a course project of VE482 in UMJI-SJTU. A simple shell named "**mumsh**"
 
 # About Honor Code
 
-If there is same questions or labs in the future, it is the responsibility of JI students not to copy or modify these codes, or TeX files because it is against the Honor Code. The owner of this repository dosen't take any commitment for other's faults.
+If there are same questions or labs in the future, it is the responsibility of JI students not to copy or modify these codes, or TeX files because it is against the Honor Code. The owner of this repository dosen't take any commitment for other's faults.
 
 According to the student handbook (2015 version),
 
